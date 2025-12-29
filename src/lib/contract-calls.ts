@@ -1,6 +1,13 @@
-import { request } from "@stacks/connect";
-import { fetchCallReadOnlyFunction, uintCV, cvToJSON } from "@stacks/transactions";
-import { CONTRACT_ADDRESS, CONTRACT_NAME, NETWORK, APP_DETAILS } from "./stacks-config";
+
+import { fetchCallReadOnlyFunction, cvToJSON } from "@stacks/transactions";
+import { STACKS_MAINNET } from "@stacks/network";
+
+// Contract constants
+export const CONTRACT_ADDRESS = "SP1GNDB8SXJ51GBMSVVXMWGTPRFHGSMWNNBEY25A4";
+export const CONTRACT_NAME = "halloffame";
+
+// Network configuration - Mainnet
+export const NETWORK = STACKS_MAINNET;
 
 // Read-only function: get counter value
 export async function getCounter(): Promise<number> {
@@ -14,9 +21,15 @@ export async function getCounter(): Promise<number> {
       senderAddress: CONTRACT_ADDRESS,
     });
 
-    // result is ResponseOkCV, result.value is IntCV
-    // @ts-ignore
-    return Number(result.value.value);
+    // Use cvToJSON for robust parsing
+    const resultJSON = cvToJSON(result);
+    // resultJSON might look like { type: 'success', value: { type: 'int', value: '1' } }
+    
+    if (resultJSON && resultJSON.value && resultJSON.value.value) {
+        return Number(resultJSON.value.value);
+    }
+    return 0;
+
   } catch (error) {
     console.error("Error fetching counter:", error);
     return 0;
@@ -35,66 +48,22 @@ export async function getTopTen(): Promise<Array<{ player: string; score: number
       senderAddress: CONTRACT_ADDRESS,
     });
 
-    // result is ResponseOkCV, result.value is ListCV
-    // @ts-ignore
-    const listData = result.value.list;
-    return listData.map((item: any) => ({
-      player: item.data.player.value,
-      score: Number(item.data.score.value),
-    }));
+    const resultJSON = cvToJSON(result);
+    // Expected: { type: 'success', value: { type: 'list', value: [ ... ] } }
+
+    if (resultJSON && resultJSON.value && Array.isArray(resultJSON.value.value)) {
+        const listData = resultJSON.value.value;
+        return listData.map((item: any) => ({
+             // item structure in JSON: { type: 'tuple', value: { player: { type: 'principal', value: '...' }, score: { type: 'uint', value: '...' } } }
+            player: item.value.player.value,
+            score: Number(item.value.score.value),
+        }));
+    }
+    
+    return [];
+
   } catch (error) {
     console.error("Error fetching leaderboard:", error);
     return [];
-  }
-}
-
-// Write function: increment counter
-export async function incrementCounter() {
-  try {
-    await request("stx_callContract", {
-      appDetails: APP_DETAILS,
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "increment",
-      functionArgs: [],
-      network: NETWORK,
-    });
-  } catch (error) {
-    console.error("Error incrementing counter:", error);
-    throw error;
-  }
-}
-
-// Write function: decrement counter
-export async function decrementCounter() {
-  try {
-    await request("stx_callContract", {
-      appDetails: APP_DETAILS,
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "decrement",
-      functionArgs: [],
-      network: NETWORK,
-    });
-  } catch (error) {
-    console.error("Error decrementing counter:", error);
-    throw error;
-  }
-}
-
-// Write function: submit score
-export async function submitScore(score: number) {
-  try {
-    await request("stx_callContract", {
-      appDetails: APP_DETAILS,
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "submit-score",
-      functionArgs: [uintCV(score)],
-      network: NETWORK,
-    });
-  } catch (error) {
-    console.error("Error submitting score:", error);
-    throw error;
   }
 }

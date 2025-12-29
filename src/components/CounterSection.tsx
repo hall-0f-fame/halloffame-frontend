@@ -1,15 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useStacksWallet } from "@/hooks/useStacksWallet";
-import { getCounter, incrementCounter, decrementCounter } from "@/lib/contract-calls";
+import { getCounter, CONTRACT_ADDRESS, CONTRACT_NAME } from "@/lib/contract-calls";
 import { ChevronUp, ChevronDown, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import styles from "./CounterSection.module.css";
+import { useConnect } from "@stacks/connect-react";
+import { userSession } from "@/config";
 
 export default function CounterSection() {
-  const { isConnected } = useStacksWallet();
+  const { doContractCall } = useConnect();
   const [count, setCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+
+  // Check authentication status
+  useEffect(() => {
+    if (userSession && userSession.isUserSignedIn()) {
+      setIsConnected(true);
+    }
+  }, []);
 
   const fetchCount = async () => {
     const value = await getCounter();
@@ -27,69 +37,74 @@ export default function CounterSection() {
     if (!isConnected) return;
 
     setLoading(true);
-    try {
-      if (operation === "increment") {
-        await incrementCounter();
-      } else {
-        await decrementCounter();
-      }
-      // Wait a bit for transaction to be mined, then refresh
-      setTimeout(fetchCount, 5000);
-    } catch (error) {
-      console.error("Operation failed:", error);
-    } finally {
-      setLoading(false);
-    }
+    
+    doContractCall({
+      contractAddress: CONTRACT_ADDRESS,
+      contractName: CONTRACT_NAME,
+      functionName: operation,
+      functionArgs: [],
+      onFinish: (data) => {
+        console.log("Transaction finished:", data);
+        setLoading(false);
+        // Optimistic update or wait for confirmation?
+        // For simplicity, we just refetch after a delay
+        setTimeout(fetchCount, 5000);
+      },
+      onCancel: () => {
+        console.log("Transaction canceled");
+        setLoading(false);
+      },
+    });
   };
 
   return (
-    <section className="w-full py-12 flex flex-col items-center justify-center">
+    <section className={styles.section}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex flex-col items-center gap-8"
+        className={styles.container}
       >
-        <div className="text-center space-y-2">
-          <h2 className="text-4xl font-bold font-display text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60">
+        <div className={styles.header}>
+          <h2 className={styles.title}>
             Global Counter
           </h2>
-          <p className="text-white/40 text-sm tracking-widest uppercase">
+          <p className={styles.subtitle}>
             Community Interactions
           </p>
         </div>
 
-        <div className="relative group">
-          <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-fuchsia-600 blur-2xl opacity-20 group-hover:opacity-40 transition-opacity rounded-full" />
-          <div className="relative w-48 h-48 rounded-full glass-panel flex items-center justify-center border-2 border-white/5">
+        <div className={styles.counterContainer}>
+          <div className={styles.glow} />
+          <div className={styles.counterCircle}>
             {count === null ? (
               <Loader2 className="w-8 h-8 animate-spin text-white/20" />
             ) : (
-              <span className="text-7xl font-bold tabular-nums tracking-tighter text-white">
+              <span className={styles.countValue}>
                 {count}
               </span>
             )}
           </div>
         </div>
 
-        <div className="flex gap-4">
+        <div className={styles.buttonGroup}>
           <button
             disabled={loading || !isConnected}
             onClick={() => handleOperation("decrement")}
-            className="glass-button p-4 rounded-full hover:bg-red-500/10 hover:border-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed group"
+            className={`${styles.actionButton} ${styles.decrementButton}`}
           >
-            <ChevronDown className="w-6 h-6 group-hover:text-red-400 transition-colors" />
+            <ChevronDown width={24} height={24} />
           </button>
           <button
             disabled={loading || !isConnected}
             onClick={() => handleOperation("increment")}
-            className="glass-button p-4 rounded-full hover:bg-green-500/10 hover:border-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed group"
+            className={`${styles.actionButton} ${styles.incrementButton}`}
           >
-            <ChevronUp className="w-6 h-6 group-hover:text-green-400 transition-colors" />
+            <ChevronUp width={24} height={24} />
           </button>
         </div>
         {!isConnected && (
-          <p className="text-xs text-white/30">Connect wallet to interact</p>
+          <p className={styles.connectPrompt}>Connect wallet to interact</p>
         )}
       </motion.div>
     </section>

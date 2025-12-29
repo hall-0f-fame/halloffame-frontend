@@ -1,30 +1,70 @@
 "use client";
 
-import { useStacksWallet } from "@/hooks/useStacksWallet";
+import { useConnect } from "@stacks/connect-react";
+import { userSession } from "@/config";
+import { useEffect, useState } from "react";
 import { Loader2, Wallet } from "lucide-react";
+import styles from "./ConnectWallet.module.css";
 
 export default function ConnectWallet() {
-  const { address, isConnected, connect, disconnect, isClient } = useStacksWallet();
+  const { authenticate } = useConnect();
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [userAddress, setUserAddress] = useState<string>('');
 
-  if (!isClient) {
+  useEffect(() => {
+    setIsMounted(true);
+    if (userSession && userSession.isUserSignedIn()) {
+      setIsSignedIn(true);
+      const userData = userSession.loadUserData();
+      // Try to get testnet address first for dev, fall back to mainnet
+      const address = userData.profile?.stxAddress?.testnet || userData.profile?.stxAddress?.mainnet || '';
+      setUserAddress(address);
+    }
+  }, []);
+
+  const handleConnect = () => {
+    authenticate({
+      appDetails: {
+        name: 'Hall of Fame',
+        icon: window.location.origin + '/next.svg',
+      },
+      redirectTo: '/',
+      onFinish: () => {
+        const userData = userSession.loadUserData();
+        setIsSignedIn(true);
+        const address = userData.profile?.stxAddress?.testnet || userData.profile?.stxAddress?.mainnet || '';
+        setUserAddress(address);
+      },
+      userSession,
+    });
+  }
+
+  const handleDisconnect = () => {
+    userSession.signUserOut();
+    setIsSignedIn(false);
+    setUserAddress('');
+  }
+
+  if (!isMounted) {
     return (
-      <button className="glass-button opacity-50 cursor-not-allowed">
-        <Loader2 className="w-4 h-4 animate-spin" />
+      <button className={`${styles.connectButton} ${styles.loadingButton}`}>
+        <Loader2 className={styles.spinner} />
       </button>
     );
   }
 
-  if (isConnected && address) {
+  if (isSignedIn && userAddress) {
     return (
       <button
-        onClick={disconnect}
-        className="glass-button flex items-center gap-2 hover:bg-red-500/10 hover:border-red-500/30 transition-all group"
+        onClick={handleDisconnect}
+        className={styles.connectedButton}
       >
-        <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-        <span className="text-sm font-medium">
-          {address.slice(0, 4)}...{address.slice(-4)}
+        <div className={styles.indicator} />
+        <span className={styles.addressText}>
+          {userAddress.slice(0, 4)}...{userAddress.slice(-4)}
         </span>
-        <span className="hidden group-hover:block text-xs text-red-400 ml-1">
+        <span className={styles.disconnectText}>
           Disconnect
         </span>
       </button>
@@ -33,10 +73,10 @@ export default function ConnectWallet() {
 
   return (
     <button
-      onClick={connect}
-      className="glass-button flex items-center gap-2 bg-gradient-to-r from-violet-600/20 to-fuchsia-600/20 hover:from-violet-600/30 hover:to-fuchsia-600/30 border-violet-500/30"
+      onClick={handleConnect}
+      className={styles.connectButton}
     >
-      <Wallet className="w-4 h-4" />
+      <Wallet width={16} height={16} />
       <span>Connect Wallet</span>
     </button>
   );

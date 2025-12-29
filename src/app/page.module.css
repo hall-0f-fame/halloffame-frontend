@@ -1,0 +1,49 @@
+/* Page Layout Styles */
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.hero {
+  padding-top: 48px;
+  padding-bottom: 48px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.heroTitle {
+  font-size: 5rem;
+  font-weight: 900;
+  font-family: var(--font-display);
+  letter-spacing: -0.05em;
+  background: linear-gradient(to bottom, #ffffff, #ffffff 50%, rgba(255, 255, 255, 0.4));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.heroDescription {
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.5);
+  max-width: 672px;
+  margin: 0 auto;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 48px;
+  max-width: 1024px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .heroTitle {
+    font-size: 7rem;
+  }
+}

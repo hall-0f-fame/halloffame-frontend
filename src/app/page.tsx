@@ -1,22 +1,23 @@
 import CounterSection from "@/components/CounterSection";
 import Leaderboard from "@/components/Leaderboard";
 import SubmitScore from "@/components/SubmitScore";
+import styles from "./page.module.css";
 
 export default function Home() {
   return (
-    <div className="space-y-12">
-      <div className="pt-24 pb-12 text-center space-y-4">
-        <h1 className="text-6xl md:text-8xl font-black font-display tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/40">
+    <div className={styles.container}>
+      <div className={styles.hero}>
+        <h1 className={styles.heroTitle}>
           LEGENDS
         </h1>
-        <p className="text-xl text-white/50 max-w-2xl mx-auto">
+        <p className={styles.heroDescription}>
           Eternalize your achievements on the Stacks blockchain. Compete for the crown.
         </p>
       </div>
 
       <CounterSection />
 
-      <div className="grid md:grid-cols-1 gap-12 max-w-4xl mx-auto">
+      <div className={styles.contentGrid}>
         <Leaderboard />
         <SubmitScore />
       </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import ContextProvider from "@/context/ContextProvider";
 
 export const metadata: Metadata = {
   title: "Hall of Fame | Stacks",
@@ -15,16 +16,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {/* Background Gradients */}
-        <div className="bg-gradients">
-          <div className="gradient-blob gradient-blob-1" />
-          <div className="gradient-blob gradient-blob-2" />
-        </div>
+        <ContextProvider>
+          {/* Background Gradients */}
+          <div className="bg-gradients">
+            <div className="gradient-blob gradient-blob-1" />
+            <div className="gradient-blob gradient-blob-2" />
+          </div>
 
-        <Navbar />
-        <main className="main-content">
-          {children}
-        </main>
+          <Navbar />
+          <main className="main-content">
+            {children}
+          </main>
+        </ContextProvider>
       </body>
     </html>
   );

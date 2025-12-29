@@ -1,58 +1,76 @@
 "use client";
 
-import { useStacksWallet } from "@/hooks/useStacksWallet";
-import { submitScore } from "@/lib/contract-calls";
+import { useConnect } from "@stacks/connect-react";
+import { userSession } from "@/config";
 import { Send } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import styles from "./SubmitScore.module.css";
+import { uintCV } from "@stacks/transactions";
+import { CONTRACT_ADDRESS, CONTRACT_NAME } from "@/lib/contract-calls";
 
 export default function SubmitScore() {
-  const { isConnected } = useStacksWallet();
+  const { doContractCall } = useConnect();
   const [score, setScore] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    if (userSession && userSession.isUserSignedIn()) {
+      setIsConnected(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!score || !isConnected) return;
 
     setLoading(true);
-    try {
-      await submitScore(Number(score));
-      setScore("");
-    } catch (error) {
-      console.error("Submit failed:", error);
-    } finally {
-      setLoading(false);
-    }
+
+    doContractCall({
+      contractAddress: CONTRACT_ADDRESS,
+      contractName: CONTRACT_NAME,
+      functionName: "submit-score",
+      functionArgs: [uintCV(Number(score))],
+      onFinish: (data) => {
+        console.log("Transaction finished:", data);
+        setScore("");
+        setLoading(false);
+      },
+      onCancel: () => {
+        console.log("Transaction canceled");
+        setLoading(false);
+      },
+    });
   };
 
   if (!isConnected) return null;
 
   return (
-    <div className="w-full max-w-md mx-auto mt-12 mb-24">
-      <form onSubmit={handleSubmit} className="glass-panel p-6 space-y-4">
-        <div className="space-y-1">
-          <h3 className="text-lg font-bold">Submit Record</h3>
-          <p className="text-sm text-white/40">
+    <div className={styles.container}>
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <div className={styles.textGroup}>
+          <h3 className={styles.title}>Submit Record</h3>
+          <p className={styles.description}>
             Enter a new high score to join the Hall of Fame.
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className={styles.inputGroup}>
           <input
             type="number"
             value={score}
             onChange={(e) => setScore(e.target.value)}
             placeholder="0"
             min="0"
-            className="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-violet-500/50 transition-colors"
+            className={styles.input}
           />
           <button
             type="submit"
             disabled={loading || !score}
-            className="glass-button bg-violet-600/20 hover:bg-violet-600/30 text-violet-200 border-violet-500/30 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={styles.submitButton}
           >
             {loading ? "Sending..." : "Submit"}
-            {!loading && <Send className="w-4 h-4" />}
+            {!loading && <Send width={16} height={16} />}
           </button>
         </div>
       </form>
